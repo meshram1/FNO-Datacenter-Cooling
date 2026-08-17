@@ -21,7 +21,7 @@ A self-contained study that walks the full physics-ML pipeline:
 | **1. Spectral CFD solver** | GPU pseudo-spectral solver (2D Navier–Stokes → Boussinesq → data-center cooling) generates training data | ~2 min for 200 trajectories on GPU |
 | **2. Neural operator** | A Fourier Neural Operator learns the PDE solution operator (built from scratch — spectral convolutions, the works) | one-step rel-L2 **0.24%** (Navier–Stokes) |
 | **3. Rollout** | Autoregressive closed-loop prediction; honest error-vs-time analysis | stable for the forced case; chaotic drift diagnosed for the free case |
-| **4. Design optimization** | The FNO is *differentiable*, so we backprop a temperature objective to the design variables | **–11.5%** peak temp (rack placement), **–15.7%** (cold-vent placement, racks fixed) |
+| **4. Design optimization** | Backprop a temperature objective through the differentiable FNO, then **verify candidates against the ground-truth CFD** (surrogate proposes → solver checks → keep verified-best) | **10.4% CFD-verified** hot-spot reduction — naive surrogate-only over-promised (15.7% predicted, only 2.8% verified) |
 
 The final artifact is a **differentiable design tool**: given a room, it finds where to place cooling so the racks stay cool — the "run more simulations, pull design insight out" pitch, made concrete.
 
@@ -33,6 +33,7 @@ The final artifact is a **differentiable design tool**: given a room, it finds w
 - **GPU pseudo-spectral solver** for 2D incompressible Navier–Stokes (vorticity form) and Boussinesq convection, ~20–40× faster than the NumPy version.
 - **Multi-field, conditioned operator**: predicts coupled `(vorticity, temperature)` and conditions on a **rack/vent layout map** fed as an input channel.
 - **Differentiable inverse design**: gradient descent (with multi-start) through the trained FNO to optimize cooling layout.
+- **CFD-verified optimization loop**: the surrogate proposes candidate layouts, the real solver verifies them, and the best is kept — recovering a *genuine* **10.4%** hot-spot reduction where naive surrogate-only optimization over-promised (15.7% predicted → **2.8% real**). Exposes and defeats the "optimizer's curse."
 - Honest evaluation throughout — including a diagnosed **chaotic rollout divergence** and how it was worked around.
 
 ---
@@ -50,6 +51,10 @@ The final artifact is a **differentiable design tool**: given a room, it finds w
 **Cold-vent placement optimization** (the realistic case — racks are fixed, optimize the cooling):
 
 ![vent optimization](figures/aisle_optimize.png)
+
+**CFD-verified optimization** — surrogate optimization over-promises (the raw 15.7% verifies at only 2.8%), so we verify every candidate against the real solver and keep the ground-truth best (**10.4%**). The scatter shows the FNO systematically over-predicts cooling — every point sits above the `surrogate = CFD` line:
+
+![CFD-verified optimization](figures/verified_optimization.png)
 
 ---
 
@@ -81,7 +86,9 @@ The final artifact is a **differentiable design tool**: given a room, it finds w
 │   ├── train*.py                  # training loops
 │   ├── rollout*.py                # autoregressive rollout evaluation
 │   ├── optimize_cool.py           # rack-placement optimizer
-│   └── optimize_aisle.py          # cold-vent optimizer (fixed racks, multi-start)
+│   ├── optimize_aisle.py          # cold-vent optimizer (fixed racks, multi-start)
+│   ├── optimize_verified.py       # surrogate-proposes + CFD-verifies loop
+│   └── verify_optimize.py         # ground-truth CFD verification of a layout
 ├── animate.py                 # renders figures/cooling.gif
 ├── figures/                   # result figures + animation
 ├── requirements.txt

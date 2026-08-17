@@ -16,3 +16,6 @@ torch-env/
 
 # tooling
 .claude/
+
+# scratch run logs
+*_results.txt
