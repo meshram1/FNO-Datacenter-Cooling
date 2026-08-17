@@ -1,0 +1,5 @@
+# tested with Python 3.10, CUDA 12.1
+torch>=2.5
+numpy>=1.26
+matplotlib>=3.7
+pillow>=10.0        # for the animation GIF

@@ -1,0 +1,18 @@
+# datasets and trained checkpoints (regenerate with the scripts; too big for git)
+*.npz
+*.pt
+
+# python
+__pycache__/
+*.pyc
+*.swp
+.ipynb_checkpoints/
+
+# venv / os
+.venv/
+env/
+torch-env/
+.DS_Store
+
+# tooling
+.claude/
